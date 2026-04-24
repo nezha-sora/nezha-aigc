@@ -161,6 +161,75 @@
         .history-info { display: flex; justify-content: space-between; align-items: center; }
         .history-name { font-size: 13px; font-weight: 600; color: #1d1d1f; }
         .history-time { font-size: 11px; color: #86868b; }
+
+        /* ================= 暗黑版独立引擎专属样式 (已做隔离命名空间) ================= */
+        #dark-app {
+            display: none; position: fixed; inset: 0; z-index: 9999;
+            background-color: #18181a; color: #f3f3f4;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            align-items: center; justify-content: center; overflow: hidden;
+        }
+        .dark-app-container {
+            width: 95vw; height: 95vh; background-color: #222225;
+            border-radius: 16px; border: 1px solid #333336;
+            display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .dark-header { padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333336; }
+        .dark-header-title { font-size: 16px; font-weight: bold; letter-spacing: 1px; display:flex; align-items:center; }
+        .dark-header-stats { display: flex; gap: 20px; font-size: 12px; color: #88888c; }
+        .dark-stat-item span { color: #f3f3f4; font-family: monospace; margin-left: 6px; font-weight: bold; }
+        .dark-canvas-area {
+            flex-grow: 1; margin: 16px; background-color: #121214; border-radius: 12px; border: 1px solid #333336;
+            position: relative; overflow: hidden; background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px); background-size: 30px 30px;
+        }
+        .dark-empty-state {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; color: #88888c; pointer-events: none; transition: opacity 0.3s;
+        }
+        .dark-empty-state svg { width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.5; }
+        .dark-footer { padding: 16px 24px; border-top: 1px solid #333336; display: flex; flex-direction: column; gap: 16px; }
+        .dark-inputs-row { display: flex; gap: 12px; align-items: center; }
+        .dark-input-field {
+            background-color: #1a1a1c !important; border: 1px solid #333336 !important; color: #f3f3f4 !important;
+            padding: 10px 14px !important; border-radius: 8px !important; font-size: 13px !important; outline: none !important; transition: border-color 0.2s !important; box-shadow: none !important;
+        }
+        .dark-input-field:focus { border-color: #6b7280 !important; }
+        .dark-key-input { width: 200px; }
+        .dark-prompt-input { flex-grow: 1; }
+        .dark-upload-wrapper { position: relative; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .dark-upload-slot {
+            width: 42px; height: 42px; border-radius: 8px; background-color: #1a1a1c; border: 1px solid #333336;
+            display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; transition: all 0.2s; overflow: hidden; flex-shrink: 0;
+        }
+        .dark-upload-slot:hover { border-color: #6b7280; background-color: #27272a; }
+        .dark-slot-plus { color: #88888c; font-size: 20px; font-weight: 300; }
+        .dark-slot-preview { width: 100%; height: 100%; border-radius: 8px; object-fit: cover; display: none; }
+        .dark-slot-remove {
+            position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; background-color: #ef4444; color: #fff; border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; display: none; z-index: 5;
+        }
+        .dark-upload-slot:hover .dark-slot-remove[style*="display: flex"] { display: flex !important; }
+        .dark-controls-row { display: flex; align-items: center; gap: 16px; justify-content: space-between; }
+        .dark-controls-left { display: flex; gap: 16px; flex-wrap: wrap; }
+        .dark-control-group { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; }
+        .dark-select-field {
+            background-color: #1a1a1c !important; border: 1px solid #333336 !important; color: #f3f3f4 !important;
+            padding: 8px 12px !important; border-radius: 8px !important; font-size: 13px !important; outline: none !important; cursor: pointer !important; min-width: 130px; box-shadow: none !important;
+        }
+        .dark-action-btn {
+            padding: 12px 32px !important; background-color: #fff !important; color: #000 !important; border: none !important; border-radius: 8px !important; font-size: 14px !important; font-weight: bold !important; cursor: pointer !important; transition: all 0.2s !important; white-space: nowrap !important; margin-top:0 !important; width: auto !important; box-shadow: none !important;
+        }
+        .dark-action-btn:hover:not(:disabled) { background-color: #e4e4e7 !important; transform: scale(1.02) !important; }
+        .dark-action-btn:active:not(:disabled) { transform: scale(0.98) !important; }
+        .dark-action-btn:disabled { background-color: #3f3f46 !important; color: #71717a !important; cursor: not-allowed !important; }
+        .dark-layer-container { position: absolute; max-width: 60%; max-height: 70%; border-radius: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.1); }
+        .dark-layer-image { width: 100%; height: 100%; border-radius: 12px; cursor: grab; display: block; user-select: none; -webkit-user-drag: none; }
+        .dark-layer-image.grabbing { cursor: grabbing; }
+        .dark-layer-toolbar {
+            position: absolute; top: 12px; right: 12px; display: flex; gap: 8px; opacity: 0; transition: opacity 0.2s; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(8px); padding: 6px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); z-index: 10;
+        }
+        .dark-layer-container:hover .dark-layer-toolbar { opacity: 1; }
+        .dark-toolbar-btn { background: none; border: none; color: #fff; font-size: 14px; cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: background 0.2s; }
+        .dark-toolbar-btn:hover { background-color: rgba(255,255,255,0.2); }
+        .dark-btn-delete:hover { background-color: rgba(239, 68, 68, 0.6); }
     </style>
 </head>
 <body>
@@ -253,6 +322,8 @@
 
         <button onclick="saveCanvasToCloud(event)" class="action-btn" style="background: linear-gradient(135deg, #0071E3 0%, #4facfe 100%); margin-top:15px; box-shadow: 0 6px 20px rgba(0, 113, 227, 0.3);">☁️ 存档到云端 (Save)</button>
         <button onclick="toggleDrawer(true)" class="secondary-btn" style="margin-top:8px;">🕰️ 查看云端历史列表</button>
+        
+        <button onclick="document.getElementById('dark-app').style.display='flex';" class="action-btn" style="background: linear-gradient(135deg, #222 0%, #000 100%); margin-top:20px; box-shadow: 0 6px 20px rgba(0,0,0,0.3);">🌙 切换至 GPT 暗黑引擎</button>
     </div>
     <canvas id="c"></canvas>
 </div>
@@ -316,6 +387,77 @@
         <div id="pl-list" style="max-height: 400px; overflow-y: auto; margin-top: 15px; padding-right: 5px;">
             <p style="text-align:center; color:#999;">正在加载词库...</p>
         </div>
+    </div>
+</div>
+
+<div id="dark-app">
+    <div class="dark-app-container">
+        <header class="dark-header">
+            <div class="dark-header-title">
+                <button onclick="document.getElementById('dark-app').style.display='none';" style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:#fff; padding:6px 14px; border-radius:10px; cursor:pointer; font-size:12px; margin-right:15px; backdrop-filter: blur(10px); transition: 0.2s;">← 退出暗黑模式</button>
+                哪吒画布GPT
+            </div>
+            <div class="dark-header-stats">
+                <div class="dark-stat-item">模型 <span id="dark-stat-model">gpt-image-2</span></div>
+                <div class="dark-stat-item">画质 <span id="dark-stat-quality">Standard</span></div>
+                <div class="dark-stat-item">层级 <span id="dark-stat-zindex">无</span></div>
+                <div class="dark-stat-item">位置 <span id="dark-stat-pos">0, 0</span></div>
+            </div>
+        </header>
+
+        <main class="dark-canvas-area" id="dark-canvas-area-id">
+            <div class="dark-empty-state" id="dark-emptyState">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c1.38 0 2.5-1.12 2.5-2.5 0-.61-.23-1.17-.61-1.61-.39-.44-.64-1.05-.64-1.69 0-1.38 1.12-2.5 2.5-2.5H18c3.31 0 6-2.69 6-6s-2.69-6-6-6zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3-4c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm6 0c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3 4c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
+                </svg>
+                <span>准备就绪，可上传一张主参考图，或直接文本渲染</span>
+            </div>
+        </main>
+
+        <footer class="dark-footer">
+            <div class="dark-inputs-row">
+                <input type="password" id="dark-apiKey" class="dark-input-field dark-key-input" placeholder="输入 API Key (自动保存)...">
+                
+                <div class="dark-upload-wrapper">
+                    <input type="file" id="dark-fileInput" accept="image/png, image/jpeg" style="display: none;">
+                    <div class="dark-upload-slot" id="dark-uploadSlot" title="➕ 添加参考图">
+                        <span class="dark-slot-plus" id="dark-slotPlus">+</span>
+                        <img class="dark-slot-preview" id="dark-slotPreview">
+                        <div class="dark-slot-remove" id="dark-slotRemove">✖</div>
+                    </div>
+                </div>
+
+                <input type="text" id="dark-prompt" class="dark-input-field dark-prompt-input" placeholder="极简风智能手表，3D渲染，工作室灯光，黑色背景">
+            </div>
+
+            <div class="dark-controls-row">
+                <div class="dark-controls-left">
+                    <div class="dark-control-group">
+                        <span>模型</span>
+                        <select id="dark-modelSelect" class="dark-select-field">
+                            <option value="gpt-image-2">gpt-image-2 (支持图生图)</option>
+                            <option value="gpt-image-2-all">gpt-image-2-all (纯生成)</option>
+                        </select>
+                    </div>
+                    <div class="dark-control-group">
+                        <span>比例</span>
+                        <select id="dark-ratioSelect" class="dark-select-field">
+                            <option value="1:1">1:1 (正方形)</option>
+                            <option value="16:9">16:9 (横屏)</option>
+                            <option value="9:16">9:16 (竖屏)</option>
+                        </select>
+                    </div>
+                    <div class="dark-control-group">
+                        <span>画质</span>
+                        <select id="dark-qualitySelect" class="dark-select-field">
+                            <option value="Standard">1K 标清</option>
+                            <option value="Ultra">2K/4K 高清</option>
+                        </select>
+                    </div>
+                </div>
+                <button id="dark-generateBtn" class="dark-action-btn">执行生成</button>
+            </div>
+        </footer>
     </div>
 </div>
 
@@ -715,7 +857,8 @@
             messages = [{ role: "system", content: systemPrompt }, { role: "user", content: textIdea }];
         }
 
-        const requestBody = { model: "gpt-4o", messages: messages, temperature: 0.7 };
+        // 仅修改了这里的模型请求代码
+        const requestBody = { model: "gpt-5.1-chat", messages: messages, temperature: 0.7 };
         btn.disabled = true; btn.innerText = "生成中...";
         loader.style.display = "block"; resultArea.style.display = "none"; resultContent.value = ""; 
 
@@ -900,6 +1043,238 @@
             document.getElementById('status').style.color = "#0071E3";
         });
     }
+</script>
+
+<script>
+    (() => {
+        const apiKeyInput = document.getElementById('dark-apiKey');
+        apiKeyInput.value = localStorage.getItem('nezha_api_key_dark') || '';
+        apiKeyInput.addEventListener('input', (e) => localStorage.setItem('nezha_api_key_dark', e.target.value));
+
+        const generateBtn = document.getElementById('dark-generateBtn');
+        const emptyState = document.getElementById('dark-emptyState');
+        const canvas = document.getElementById('dark-canvas-area-id');
+        let maxZIndex = 10;
+
+        let sourceFile = null; 
+        const fileInput = document.getElementById('dark-fileInput');
+        const uploadSlot = document.getElementById('dark-uploadSlot');
+        const slotPreview = document.getElementById('dark-slotPreview');
+        const slotPlus = document.getElementById('dark-slotPlus');
+        const slotRemove = document.getElementById('dark-slotRemove');
+
+        uploadSlot.addEventListener('click', (e) => {
+            if (e.target !== slotRemove) fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            sourceFile = file; 
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                slotPreview.src = event.target.result;
+                slotPreview.style.display = 'block';
+                slotPlus.style.display = 'none';
+                slotRemove.style.display = 'flex';
+                uploadSlot.title = "已上传参考图，点击✖移除";
+            };
+            reader.readAsDataURL(file);
+        });
+
+        slotRemove.addEventListener('click', (e) => {
+            e.stopPropagation();
+            sourceFile = null;
+            fileInput.value = ''; 
+            slotPreview.src = '';
+            slotPreview.style.display = 'none';
+            slotPlus.style.display = 'block';
+            slotRemove.style.display = 'none';
+            uploadSlot.title = "➕ 添加参考图";
+        });
+
+        function getFinalSizeParameter(ratio, quality) {
+            if (ratio === "1:1") return quality === "Ultra" ? "2048x2048" : "1024x1024";
+            if (ratio === "16:9") return quality === "Ultra" ? "3840x2160" : "1792x1024";
+            if (ratio === "9:16") return quality === "Ultra" ? "2160x3840" : "1024x1792";
+            return "1024x1024";
+        }
+
+        generateBtn.addEventListener('click', async () => {
+            const key = apiKeyInput.value.trim();
+            const prompt = document.getElementById('dark-prompt').value.trim();
+            const model = document.getElementById('dark-modelSelect').value;
+            const ratio = document.getElementById('dark-ratioSelect').value;
+            const quality = document.getElementById('dark-qualitySelect').value;
+            const finalSize = getFinalSizeParameter(ratio, quality);
+
+            if (!key) return alert("为了调用 API，请先输入有效的 API Key！");
+            if (!prompt) return alert("提示词指令不能为空！");
+
+            generateBtn.disabled = true;
+            generateBtn.textContent = "🚀 渲染中...";
+
+            try {
+                const hasReference = sourceFile !== null;
+                const endpoint = hasReference ? 'https://vip.123everything.com/v1/images/edits' : 'https://vip.123everything.com/v1/images/generations';
+
+                let fetchOptions = {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${key}` }
+                };
+
+                if (hasReference) {
+                    const formData = new FormData();
+                    formData.append('image', sourceFile); 
+                    formData.append('prompt', prompt);
+                    formData.append('model', model);
+                    formData.append('size', finalSize);
+                    fetchOptions.body = formData;
+                } else {
+                    fetchOptions.headers['Content-Type'] = 'application/json';
+                    fetchOptions.body = JSON.stringify({ model, prompt, size: finalSize });
+                }
+
+                const response = await fetch(endpoint, fetchOptions);
+
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error(`渲染失败: 状态码 ${response.status}。错误详情: ${errText}`);
+                }
+
+                const data = await response.json();
+                
+                let imgUrl = '';
+                if (data.data && data.data.length > 0) { imgUrl = data.data[0].url || data.data[0].b64_json; } 
+                else if (data.url) { imgUrl = data.url; } 
+                else if (data.image) { imgUrl = data.image; }
+
+                if (!imgUrl) throw new Error("API 调用成功，但未能解析到图片地址");
+                if (!imgUrl.startsWith('http') && !imgUrl.startsWith('data:')) {
+                    imgUrl = `data:image/png;base64,${imgUrl}`;
+                }
+
+                const offsetX = Math.floor(Math.random() * 80 - 40); 
+                const offsetY = Math.floor(Math.random() * 80 - 40);
+
+                renderImageToCanvas(imgUrl, offsetX, offsetY);
+
+            } catch (error) {
+                alert(error.message);
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.textContent = "执行高精度渲染";
+            }
+        });
+
+        function renderImageToCanvas(src, offsetX, offsetY) {
+            emptyState.style.opacity = '0';
+
+            const container = document.createElement('div');
+            container.classList.add('dark-layer-container');
+            maxZIndex++;
+            container.style.zIndex = maxZIndex;
+            
+            container.style.top = `calc(50% + ${offsetY}px)`;
+            container.style.left = `calc(50% + ${offsetX}px)`;
+            container.style.transform = `translate(-50%, -50%)`;
+
+            const imgObj = document.createElement('img');
+            imgObj.src = src;
+            imgObj.classList.add('dark-layer-image');
+            
+            const toolbar = document.createElement('div');
+            toolbar.classList.add('dark-layer-toolbar');
+            
+            const downloadBtn = document.createElement('button');
+            downloadBtn.classList.add('dark-toolbar-btn');
+            downloadBtn.innerHTML = '⬇️ 下载';
+            downloadBtn.onclick = async (e) => {
+                e.stopPropagation();
+                try {
+                    if(src.startsWith('data:')) {
+                        triggerDownload(src);
+                    } else {
+                        downloadBtn.innerHTML = '⏳...';
+                        const res = await fetch(src);
+                        const blob = await res.blob();
+                        const blobUrl = URL.createObjectURL(blob);
+                        triggerDownload(blobUrl);
+                        URL.revokeObjectURL(blobUrl);
+                        downloadBtn.innerHTML = '⬇️ 下载';
+                    }
+                } catch (err) {
+                    triggerDownload(src);
+                    downloadBtn.innerHTML = '⬇️ 下载';
+                }
+            };
+
+            function triggerDownload(url) {
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `nezha_render_${Date.now()}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            }
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.classList.add('dark-toolbar-btn', 'dark-btn-delete');
+            deleteBtn.innerHTML = '✖️';
+            deleteBtn.onclick = (e) => {
+                e.stopPropagation();
+                container.remove();
+                if (canvas.querySelectorAll('.dark-layer-container').length === 0) {
+                    emptyState.style.opacity = '1';
+                }
+            };
+
+            toolbar.appendChild(downloadBtn);
+            toolbar.appendChild(deleteBtn);
+            container.appendChild(imgObj);
+            container.appendChild(toolbar);
+            canvas.appendChild(container);
+            
+            updateTopStats(maxZIndex, offsetX, offsetY);
+
+            imgObj.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                imgObj.classList.add('grabbing');
+                maxZIndex++;
+                container.style.zIndex = maxZIndex;
+
+                const rect = container.getBoundingClientRect();
+                const canvasRect = canvas.getBoundingClientRect();
+                
+                const shiftX = e.clientX - rect.left;
+                const shiftY = e.clientY - rect.top;
+
+                function onMouseMove(moveEvent) {
+                    let newLeft = moveEvent.clientX - shiftX - canvasRect.left + (rect.width / 2);
+                    let newTop = moveEvent.clientY - shiftY - canvasRect.top + (rect.height / 2);
+
+                    container.style.left = `${newLeft}px`;
+                    container.style.top = `${newTop}px`;
+                    
+                    updateTopStats(container.style.zIndex, Math.round(newLeft - canvasRect.width/2), Math.round(newTop - canvasRect.height/2));
+                }
+
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', () => {
+                    imgObj.classList.remove('grabbing');
+                    document.removeEventListener('mousemove', onMouseMove);
+                }, { once: true });
+            });
+        }
+
+        function updateTopStats(zIndex, x, y) {
+            document.getElementById('dark-stat-model').textContent = document.getElementById('dark-modelSelect').value;
+            document.getElementById('dark-stat-quality').textContent = document.getElementById('dark-qualitySelect').value;
+            document.getElementById('dark-stat-zindex').textContent = zIndex;
+            document.getElementById('dark-stat-pos').textContent = `${x}, ${y}`;
+        }
+    })();
 </script>
 
 </body>
