@@ -262,11 +262,12 @@
         </select>
 
         <label>画布比例 (Aspect Ratio)</label>
-        <div id="ratio-hint" style="font-size: 9px; color: var(--nezha-red); margin-bottom: 5px; display: none; font-weight:bold;">✨ 比例已随图1锁定映射</div>
+        <div id="ratio-hint" style="font-size: 9px; color: #389e0d; margin-bottom: 5px; display: none; font-weight:bold;">📐 已记录图1原始比例，可选「按原图比例生成」</div>
         <div class="res-grid">
             <div class="res-option active" data-ratio="1:1">1:1</div>
             <div class="res-option" data-ratio="16:9">16:9</div>
             <div class="res-option" data-ratio="9:16">9:16</div>
+            <div class="res-option" data-ratio="original" style="grid-column: span 3; background:#f6ffed; color:#389e0d;">📐 按原图比例生成</div>
         </div>
         <input type="hidden" id="selectedRatio" value="1:1">
 
@@ -445,6 +446,8 @@
                             <option value="1:1">1:1 (正方形)</option>
                             <option value="16:9">16:9 (横屏)</option>
                             <option value="9:16">9:16 (竖屏)</option>
+                            <option value="4:3">4:3 (横向)</option>
+                            <option value="3:4">3:4 (纵向)</option>
                         </select>
                     </div>
                     <div class="dark-control-group">
@@ -532,6 +535,10 @@
         document.querySelectorAll('.res-option').forEach(opt => {
             opt.onclick = function() {
                 if (this.classList.contains('locked')) return;
+                if (this.dataset.ratio === 'original' && !slotRatio) {
+                    alert('请先把一张图片设为"图1"或上传到图1插槽，系统会自动记录其原始比例');
+                    return;
+                }
                 document.querySelectorAll('.res-option').forEach(o => o.classList.remove('active'));
                 this.classList.add('active');
                 document.getElementById('selectedRatio').value = this.dataset.ratio;
@@ -571,7 +578,6 @@
             if (n === 1) {
                 slotRatio = (obj.width * obj.scaleX) / (obj.height * obj.scaleY);
                 document.getElementById('ratio-hint').style.display = 'block';
-                document.querySelectorAll('.res-option').forEach(el => el.classList.add('locked'));
             }
             updateSlotUI(n, data);
         }
@@ -594,7 +600,12 @@
         if (n === 1) {
             slotRatio = null;
             document.getElementById('ratio-hint').style.display = 'none';
-            document.querySelectorAll('.res-option').forEach(el => el.classList.remove('locked'));
+            const originalOpt = document.querySelector('.res-option[data-ratio="original"]');
+            if (originalOpt && originalOpt.classList.contains('active')) {
+                originalOpt.classList.remove('active');
+                document.querySelector('.res-option[data-ratio="1:1"]').classList.add('active');
+                document.getElementById('selectedRatio').value = '1:1';
+            }
         }
     }
 
@@ -612,7 +623,6 @@
                     tempImg.onload = () => {
                         slotRatio = tempImg.width / tempImg.height;
                         document.getElementById('ratio-hint').style.display = 'block';
-                        document.querySelectorAll('.res-option').forEach(el => el.classList.add('locked'));
                         updateSlotUI(n, rawData);
                     };
                 } else { updateSlotUI(n, rawData); }
@@ -692,10 +702,16 @@
         let finalRatio = document.getElementById('selectedRatio').value;
         let finalSize = document.getElementById('selectedSize').value;
 
-        if (slotRatio) {
-            if (slotRatio >= 1.4) finalRatio = "16:9";
-            else if (slotRatio <= 0.7) finalRatio = "9:16";
-            else finalRatio = "1:1";
+        if (finalRatio === 'original') {
+            if (slotRatio) {
+                if (slotRatio >= 1.7) finalRatio = "16:9";
+                else if (slotRatio >= 1.2) finalRatio = "4:3";
+                else if (slotRatio <= 0.6) finalRatio = "9:16";
+                else if (slotRatio <= 0.85) finalRatio = "3:4";
+                else finalRatio = "1:1";
+            } else {
+                finalRatio = "1:1";
+            }
         }
 
         let url, body;
@@ -1095,9 +1111,11 @@
         });
 
         function getFinalSizeParameter(ratio, quality) {
-            if (ratio === "1:1") return quality === "Ultra" ? "2048x2048" : "1024x1024";
+            if (ratio === "1:1") return quality === "Ultra" ? "3840x3840" : "1024x1024";
             if (ratio === "16:9") return quality === "Ultra" ? "3840x2160" : "1792x1024";
             if (ratio === "9:16") return quality === "Ultra" ? "2160x3840" : "1024x1792";
+            if (ratio === "4:3") return quality === "Ultra" ? "2048x1536" : "1280x960";
+            if (ratio === "3:4") return quality === "Ultra" ? "1536x2048" : "960x1280";
             return "1024x1024";
         }
 
@@ -1246,17 +1264,24 @@
 
                 const rect = container.getBoundingClientRect();
                 const canvasRect = canvas.getBoundingClientRect();
-                
+
                 const shiftX = e.clientX - rect.left;
                 const shiftY = e.clientY - rect.top;
 
+                const startX = e.clientX;
+                const startY = e.clientY;
+                let hasMoved = false;
+
                 function onMouseMove(moveEvent) {
+                    if (!hasMoved && (Math.abs(moveEvent.clientX - startX) > 3 || Math.abs(moveEvent.clientY - startY) > 3)) {
+                        hasMoved = true;
+                    }
                     let newLeft = moveEvent.clientX - shiftX - canvasRect.left + (rect.width / 2);
                     let newTop = moveEvent.clientY - shiftY - canvasRect.top + (rect.height / 2);
 
                     container.style.left = `${newLeft}px`;
                     container.style.top = `${newTop}px`;
-                    
+
                     updateTopStats(container.style.zIndex, Math.round(newLeft - canvasRect.width/2), Math.round(newTop - canvasRect.height/2));
                 }
 
@@ -1264,6 +1289,17 @@
                 document.addEventListener('mouseup', () => {
                     imgObj.classList.remove('grabbing');
                     document.removeEventListener('mousemove', onMouseMove);
+                    if (!hasMoved) {
+                        if (src.startsWith('data:')) {
+                            const newWin = window.open('', '_blank');
+                            fetch(src).then(r => r.blob()).then(blob => {
+                                const blobUrl = URL.createObjectURL(blob);
+                                if (newWin) newWin.location.href = blobUrl;
+                            }).catch(() => { if (newWin) newWin.close(); });
+                        } else {
+                            window.open(src, '_blank');
+                        }
+                    }
                 }, { once: true });
             });
         }
