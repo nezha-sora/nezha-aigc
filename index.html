@@ -324,6 +324,8 @@
         <button onclick="saveCanvasToCloud(event)" class="action-btn" style="background: linear-gradient(135deg, #0071E3 0%, #4facfe 100%); margin-top:15px; box-shadow: 0 6px 20px rgba(0, 113, 227, 0.3);">☁️ 存档到云端 (Save)</button>
         <button onclick="toggleDrawer(true)" class="secondary-btn" style="margin-top:8px;">🕰️ 查看云端历史列表</button>
         
+        <button onclick="document.getElementById('bw-app').style.display='flex'; window.bwOnOpen && window.bwOnOpen();" class="action-btn" style="background: linear-gradient(135deg, #34c759 0%, #2ebc53 100%); margin-top:15px; box-shadow: 0 6px 20px rgba(52,199,89,0.3);">🧩 节点批量工坊</button>
+
         <button onclick="document.getElementById('dark-app').style.display='flex';" class="action-btn" style="background: linear-gradient(135deg, #222 0%, #000 100%); margin-top:20px; box-shadow: 0 6px 20px rgba(0,0,0,0.3);">🌙 切换至 GPT 暗黑引擎</button>
     </div>
     <canvas id="c"></canvas>
@@ -376,6 +378,22 @@
             <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">生成结果 (可编辑)</div>
             <textarea id="pgResultContent" rows="6" style="background: #F5F5F7; border: none; font-size: 13px;"></textarea>
             <button class="pg-apply-btn" onclick="pgApplyToCanvas()">一键填入画布</button>
+        </div>
+
+        <!-- ===== 多轮对话扩展（独立命名空间 pgChat-） ===== -->
+        <div id="pgChat-wrap" style="margin-top:24px; padding-top:20px; border-top:1px solid var(--pg-border);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <div style="font-size: 14px; font-weight: 600;">💬 上下文对话 <span style="font-size:11px; color:#86868B; font-weight:400;">(可继续追问 / 修改)</span></div>
+                <span id="pgChat-clear" style="cursor:pointer; font-size:11px; color:#86868B; padding:4px 10px; background:#F5F5F7; border-radius:8px;">🧹 清空</span>
+            </div>
+            <div id="pgChat-messages" style="max-height:280px; overflow-y:auto; padding:10px; background:#FAFAFC; border-radius:12px; border:1px solid #EEE; margin-bottom:10px;">
+                <p style="text-align:center; color:#aaa; font-size:12px; margin:20px 0;">对话历史为空。先用上方的「图生文 / 文生文」开启第一轮，或直接在下方输入框提问。</p>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <textarea id="pgChat-input" rows="2" placeholder="继续追问，例如：再赛博朋克一点 / 换成黄昏 / 缩短到 50 字..." style="flex:1; resize:vertical;"></textarea>
+                <button id="pgChat-send" style="width:80px; background:var(--pg-apple-blue); color:#fff; border:none; border-radius:12px; font-weight:600; cursor:pointer;">发送</button>
+            </div>
+            <div style="font-size:10px; color:#aaa; margin-top:6px;">⌨️ Enter 发送 · Shift+Enter 换行 · 关闭窗口对话不清空</div>
         </div>
     </div>
 </div>
@@ -462,6 +480,105 @@
             </div>
         </footer>
     </div>
+</div>
+
+<!-- ================= 节点批量工坊（独立命名空间 bw-） ================= -->
+<style>
+    #bw-app { display:none; position:fixed; inset:0; z-index:9998; background:#f4f5f7; flex-direction:column; font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif; }
+    .bw-header { padding:14px 24px; background:#fff; border-bottom:1px solid #e5e7eb; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+    .bw-header-left { display:flex; align-items:center; gap:14px; }
+    .bw-title { font-size:16px; font-weight:700; color:#111; }
+    .bw-back-btn { background:#f5f5f7; border:1px solid #e5e7eb; padding:6px 14px; border-radius:10px; cursor:pointer; font-size:12px; color:#444; }
+    .bw-back-btn:hover { background:#eee; }
+    .bw-global-bar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .bw-global-bar label { font-size:11px; color:#777; font-weight:700; text-transform:uppercase; margin:0; }
+    .bw-global-bar select, .bw-global-bar input { padding:6px 10px; border-radius:8px; border:1px solid #ddd; font-size:12px; background:#fff; }
+    .bw-toolbar { display:flex; gap:8px; flex-wrap:wrap; }
+    .bw-btn { padding:8px 14px; border-radius:10px; font-size:12px; font-weight:600; cursor:pointer; border:1px solid #ddd; background:#fff; color:#333; transition:0.15s; }
+    .bw-btn:hover { border-color:#34c759; color:#34c759; }
+    .bw-btn-primary { background:linear-gradient(135deg,#34c759,#2ebc53); color:#fff; border:none; }
+    .bw-btn-primary:hover { color:#fff; opacity:0.9; }
+    .bw-btn-stop { background:#fff; color:#ff4d4f; border-color:#ff4d4f; }
+    .bw-btn-stop:hover { background:#ff4d4f; color:#fff; }
+    .bw-progress-row { padding:10px 24px; background:#fff; border-bottom:1px solid #eee; display:flex; align-items:center; gap:14px; font-size:12px; color:#555; }
+    .bw-progress-bar { flex:1; height:8px; background:#eee; border-radius:4px; overflow:hidden; }
+    .bw-progress-fill { height:100%; background:linear-gradient(90deg,#34c759,#5ac8fa); width:0%; transition:width 0.3s; }
+    .bw-grid { flex:1; overflow-y:auto; padding:24px; display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:18px; align-content:start; }
+    .bw-node { background:#fff; border-radius:16px; padding:14px; border:2px solid transparent; transition:0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.04); display:flex; flex-direction:column; gap:10px; position:relative; }
+    .bw-node[data-status="running"] { border-color:#5ac8fa; box-shadow:0 0 0 4px rgba(90,200,250,0.15); }
+    .bw-node[data-status="done"] { border-color:#34c759; }
+    .bw-node[data-status="error"] { border-color:#ff4d4f; }
+    .bw-node-header { display:flex; justify-content:space-between; align-items:center; }
+    .bw-node-id { font-size:13px; font-weight:700; color:#111; }
+    .bw-node-status { font-size:10px; padding:3px 8px; border-radius:6px; font-weight:600; }
+    .bw-node-actions { display:flex; gap:4px; }
+    .bw-node-actions button { background:none; border:none; cursor:pointer; font-size:13px; padding:2px 6px; border-radius:6px; color:#86868B; }
+    .bw-node-actions button:hover { background:#f5f5f7; color:#111; }
+    .bw-slots { display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; }
+    .bw-slot { aspect-ratio:1; border:2px dashed #e0e0e0; border-radius:8px; background:#fafafa; display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative; overflow:hidden; font-size:9px; color:#bbb; }
+    .bw-slot:hover { border-color:#34c759; background:#fff; }
+    .bw-slot.filled { border-style:solid; border-color:#34c759; }
+    .bw-slot img { width:100%; height:100%; object-fit:cover; }
+    .bw-slot .bw-slot-x { position:absolute; top:1px; right:3px; color:#ff4d4f; font-size:14px; font-weight:bold; text-shadow:0 0 3px #fff; z-index:2; cursor:pointer; }
+    .bw-node textarea { width:100%; padding:8px; border-radius:8px; border:1.5px solid #eee; font-size:12px; resize:vertical; min-height:60px; outline:none; font-family:inherit; }
+    .bw-node textarea:focus { border-color:#34c759; }
+    .bw-node-config { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
+    .bw-node-config select { padding:5px; border-radius:6px; border:1px solid #ddd; font-size:11px; background:#fff; min-width:0; }
+    .bw-node-result { margin-top:6px; border-radius:8px; overflow:hidden; max-height:160px; display:flex; align-items:center; justify-content:center; background:#f5f5f7; }
+    .bw-node-result img { width:100%; max-height:160px; object-fit:contain; }
+    .bw-node-error { font-size:11px; color:#ff4d4f; padding:6px; background:#fff5f5; border-radius:6px; }
+    .bw-add-card { background:#fff; border:2px dashed #ccc; border-radius:16px; min-height:200px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; color:#86868B; transition:0.2s; }
+    .bw-add-card:hover { border-color:#34c759; color:#34c759; background:#f6ffed; }
+    .bw-add-card .plus { font-size:36px; font-weight:300; line-height:1; }
+    .bw-empty { grid-column:1/-1; text-align:center; padding:60px 20px; color:#86868B; }
+</style>
+
+<div id="bw-app">
+    <header class="bw-header">
+        <div class="bw-header-left">
+            <button class="bw-back-btn" onclick="document.getElementById('bw-app').style.display='none';">← 返回主画布</button>
+            <span class="bw-title">🧩 节点批量工坊</span>
+            <span style="font-size:11px; color:#999;">结果图自动送回主画布</span>
+        </div>
+        <div class="bw-toolbar">
+            <button class="bw-btn" id="bw-import">📤 导入</button>
+            <button class="bw-btn" id="bw-export">📥 导出</button>
+            <button class="bw-btn" id="bw-clear-all" style="color:#ff4d4f; border-color:#ffccc7;">🗑️ 全部清空</button>
+            <button class="bw-btn bw-btn-stop" id="bw-stop" style="display:none;">⏹ 停止队列</button>
+            <button class="bw-btn bw-btn-primary" id="bw-run-all">▶ 全部执行</button>
+        </div>
+    </header>
+    <div class="bw-global-bar" style="padding:12px 24px; background:#fafbfc; border-bottom:1px solid #eee;">
+        <label>默认模型</label>
+        <select id="bw-default-model">
+            <option value="flash">Gemini 3.1 Flash</option>
+            <option value="pro">Gemini 3 Pro</option>
+            <option value="openai">OpenAI (DALL-E 3)</option>
+        </select>
+        <label>默认比例</label>
+        <select id="bw-default-ratio">
+            <option value="1:1">1:1</option>
+            <option value="16:9">16:9</option>
+            <option value="9:16">9:16</option>
+            <option value="4:3">4:3</option>
+            <option value="3:4">3:4</option>
+            <option value="original">📐 原图比例</option>
+        </select>
+        <label>默认画质</label>
+        <select id="bw-default-size">
+            <option value="1K">1K</option>
+            <option value="2K">2K</option>
+            <option value="4K">4K</option>
+        </select>
+        <span style="font-size:10px; color:#999; margin-left:auto;">💡 新建节点会继承这些默认值，每个节点也可单独覆盖</span>
+    </div>
+    <div class="bw-progress-row" id="bw-progress-row" style="display:none;">
+        <span id="bw-progress-text">就绪</span>
+        <div class="bw-progress-bar"><div class="bw-progress-fill" id="bw-progress-fill"></div></div>
+        <span id="bw-progress-count" style="font-family:monospace; font-weight:700;">0/0</span>
+    </div>
+    <div class="bw-grid" id="bw-grid"></div>
+    <input type="file" id="bw-file-input" accept="application/json" style="display:none;">
 </div>
 
 <script>
@@ -647,6 +764,35 @@
         }, { crossOrigin: 'anonymous' });
     }
 
+    function preprocessImageFile(file, maxDim = 4500) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = e => {
+                const dataURL = e.target.result;
+                const img = new Image();
+                img.onload = () => {
+                    const longest = Math.max(img.width, img.height);
+                    if (longest <= maxDim) { resolve(dataURL); return; }
+                    const scale = maxDim / longest;
+                    const w = Math.round(img.width * scale);
+                    const h = Math.round(img.height * scale);
+                    const c = document.createElement('canvas');
+                    c.width = w; c.height = h;
+                    const ctx = c.getContext('2d');
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    ctx.drawImage(img, 0, 0, w, h);
+                    const mime = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+                    resolve(mime === 'image/jpeg' ? c.toDataURL(mime, 0.95) : c.toDataURL(mime));
+                };
+                img.onerror = reject;
+                img.src = dataURL;
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
     function initDragAndDrop() {
         const overlay = document.getElementById('drag-overlay');
         window.addEventListener('dragenter', () => overlay.style.display = 'flex');
@@ -658,9 +804,9 @@
             if (files && files.length > 0) {
                 for (let file of files) {
                     if (file.type.startsWith('image/')) {
-                        const reader = new FileReader();
-                        reader.onload = f => addImageToCanvas(f.target.result);
-                        reader.readAsDataURL(file);
+                        preprocessImageFile(file)
+                            .then(dataURL => addImageToCanvas(dataURL))
+                            .catch(err => console.error('灵光入画预处理失败:', err));
                     }
                 }
             }
@@ -1310,6 +1456,587 @@
             document.getElementById('dark-stat-zindex').textContent = zIndex;
             document.getElementById('dark-stat-pos').textContent = `${x}, ${y}`;
         }
+    })();
+</script>
+
+<script>
+    // ===== AI 助手 · 多轮对话扩展（独立 IIFE，不修改原 pgGeneratePrompt） =====
+    (() => {
+        const messagesEl = document.getElementById('pgChat-messages');
+        const inputEl = document.getElementById('pgChat-input');
+        const sendBtn = document.getElementById('pgChat-send');
+        const clearBtn = document.getElementById('pgChat-clear');
+
+        let chatHistory = []; // [{role, content}]
+        let seeded = false;   // 是否已经把首轮生成结果纳入上下文
+
+        const SYS_PROMPT = "你是一个顶级的 AI 绘画提示词专家，与用户进行多轮对话。每次回复请先输出一段中文解析，然后另起一行输出纯英文提示词（英文用半角逗号分隔）。保持简洁。";
+
+        function escapeHtml(str) {
+            return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+        }
+
+        function renderMessages() {
+            if (chatHistory.length === 0) {
+                messagesEl.innerHTML = '<p style="text-align:center; color:#aaa; font-size:12px; margin:20px 0;">对话历史为空。先用上方的「图生文 / 文生文」开启第一轮，或直接在下方输入框提问。</p>';
+                return;
+            }
+            messagesEl.innerHTML = chatHistory.map((m, idx) => {
+                if (m.role === 'user') {
+                    const text = typeof m.content === 'string' ? m.content : (m.content.find(c => c.type === 'text')?.text || '[图片消息]');
+                    const hasImg = Array.isArray(m.content) && m.content.some(c => c.type === 'image_url');
+                    return `<div style="display:flex; justify-content:flex-end; margin:8px 0;">
+                        <div style="max-width:85%; background:#E3E3E8; padding:10px 14px; border-radius:14px 14px 4px 14px; font-size:13px; line-height:1.5; white-space:pre-wrap;">${hasImg ? '🖼️ ' : ''}${escapeHtml(text)}</div>
+                    </div>`;
+                } else {
+                    return `<div style="margin:8px 0;">
+                        <div style="max-width:90%; background:#fff; padding:10px 14px; border-radius:14px 14px 14px 4px; font-size:13px; line-height:1.6; white-space:pre-wrap; border:1px solid #EEE;">${escapeHtml(m.content)}</div>
+                        <div style="display:flex; gap:6px; margin-top:6px; padding-left:4px;">
+                            <button data-act="copy" data-idx="${idx}" style="font-size:10px; padding:3px 8px; background:#F5F5F7; border:none; border-radius:6px; cursor:pointer; color:#555;">📋 复制</button>
+                            <button data-act="apply" data-idx="${idx}" style="font-size:10px; padding:3px 8px; background:#E8F5E9; border:none; border-radius:6px; cursor:pointer; color:#2e7d32;">✍️ 填入画布</button>
+                            <button data-act="regen" data-idx="${idx}" style="font-size:10px; padding:3px 8px; background:#FFF3E0; border:none; border-radius:6px; cursor:pointer; color:#e65100;">🔄 重新生成</button>
+                        </div>
+                    </div>`;
+                }
+            }).join('');
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+
+        messagesEl.addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-act]');
+            if (!btn) return;
+            const idx = parseInt(btn.dataset.idx);
+            const text = chatHistory[idx]?.content || '';
+            if (btn.dataset.act === 'copy') {
+                navigator.clipboard?.writeText(text);
+                btn.innerText = '✓ 已复制'; setTimeout(() => btn.innerText = '📋 复制', 1200);
+            } else if (btn.dataset.act === 'apply') {
+                document.getElementById('prompt').value = text;
+                btn.innerText = '✓ 已填入'; setTimeout(() => btn.innerText = '✍️ 填入画布', 1200);
+            } else if (btn.dataset.act === 'regen') {
+                // 截断到该 assistant 之前，重新发起
+                chatHistory = chatHistory.slice(0, idx);
+                renderMessages();
+                callChat();
+            }
+        });
+
+        async function callChat() {
+            let apiKey = document.getElementById('pgApiKey').value.trim() || document.getElementById('apiKey').value.trim();
+            if (!apiKey) { alert('请先输入 API Key！'); return; }
+
+            const messages = [{ role: 'system', content: SYS_PROMPT }, ...chatHistory];
+            sendBtn.disabled = true; sendBtn.innerText = '...';
+
+            // 在消息区追加临时「思考中」气泡
+            const thinkingEl = document.createElement('div');
+            thinkingEl.style.cssText = 'margin:8px 0; color:#86868B; font-size:12px; padding-left:14px;';
+            thinkingEl.innerText = '✨ AI 思考中...';
+            messagesEl.appendChild(thinkingEl);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+
+            try {
+                const res = await fetch('https://vip.123everything.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                    body: JSON.stringify({ model: 'gpt-5.1-chat', messages, temperature: 0.7 })
+                });
+                if (!res.ok) throw new Error(`状态码 ${res.status}: ${await res.text()}`);
+                const data = await res.json();
+                const reply = data.choices[0].message.content;
+                chatHistory.push({ role: 'assistant', content: reply });
+                renderMessages();
+            } catch (err) {
+                thinkingEl.style.color = '#ff4d4f';
+                thinkingEl.innerText = '❌ ' + err.message;
+            } finally {
+                sendBtn.disabled = false; sendBtn.innerText = '发送';
+            }
+        }
+
+        async function sendUserMessage() {
+            const text = inputEl.value.trim();
+            if (!text) return;
+            chatHistory.push({ role: 'user', content: text });
+            inputEl.value = '';
+            renderMessages();
+            await callChat();
+        }
+
+        sendBtn.addEventListener('click', sendUserMessage);
+        inputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendUserMessage(); }
+        });
+
+        clearBtn.addEventListener('click', () => {
+            if (chatHistory.length === 0 || confirm('确定清空整个对话历史？')) {
+                chatHistory = []; seeded = false; renderMessages();
+            }
+        });
+
+        // 监听原生「生成结果」按钮：首次生成自动播种到对话上下文
+        const observer = new MutationObserver(() => {
+            const resultArea = document.getElementById('pgResultArea');
+            const resultText = document.getElementById('pgResultContent').value;
+            if (resultArea.style.display === 'block' && resultText && !seeded) {
+                // 判断模式
+                const isImageMode = document.getElementById('imageTab').classList.contains('active');
+                let userMsg;
+                if (isImageMode && window.pgBase64Image) {
+                    const idea = document.getElementById('pgImageIdeaInput').value.trim();
+                    const txt = idea ? `请反推这张图，并按想法修改：${idea}` : '请反推这张图的提示词';
+                    userMsg = { role: 'user', content: [{ type: 'text', text: txt }, { type: 'image_url', image_url: { url: window.pgBase64Image } }] };
+                } else {
+                    const idea = document.getElementById('pgTextInput').value.trim();
+                    userMsg = { role: 'user', content: idea || '请生成一段绘画提示词' };
+                }
+                chatHistory.push(userMsg);
+                chatHistory.push({ role: 'assistant', content: resultText });
+                seeded = true;
+                renderMessages();
+            }
+        });
+        observer.observe(document.getElementById('pgResultArea'), { attributes: true, attributeFilter: ['style'] });
+        document.getElementById('pgResultContent').addEventListener('input', () => { /* 用户改了首轮结果不重新种子 */ });
+
+        // 暴露 pgBase64Image 给观察器（原代码已是模块级 let）
+        const origPreview = window.pgPreviewImage;
+        if (origPreview) {
+            window.pgPreviewImage = function(ev) {
+                origPreview(ev);
+                // pgBase64Image 在原代码里是模块作用域，无法直接读，这里二次绑定
+                const f = ev.target.files[0];
+                if (f) { const r = new FileReader(); r.onload = e => window.pgBase64Image = e.target.result; r.readAsDataURL(f); }
+            };
+        }
+    })();
+</script>
+
+<script>
+    // ===== 节点批量工坊（独立 IIFE，复用主画布 callAPI / addImageToCanvas） =====
+    (() => {
+        const grid = document.getElementById('bw-grid');
+        const runAllBtn = document.getElementById('bw-run-all');
+        const stopBtn = document.getElementById('bw-stop');
+        const clearAllBtn = document.getElementById('bw-clear-all');
+        const exportBtn = document.getElementById('bw-export');
+        const importBtn = document.getElementById('bw-import');
+        const fileInput = document.getElementById('bw-file-input');
+        const progressRow = document.getElementById('bw-progress-row');
+        const progressText = document.getElementById('bw-progress-text');
+        const progressFill = document.getElementById('bw-progress-fill');
+        const progressCount = document.getElementById('bw-progress-count');
+
+        let nodes = [];   // [{id, slots:[null,null,null,null], prompt, ratio, size, model, status, result, error}]
+        let nextId = 1;
+        let queueRunning = false;
+        let stopRequested = false;
+
+        // ---- IndexedDB 持久化 ----
+        const DB_NAME = 'bw-workshop', STORE = 'state', KEY = 'current';
+        function openDB() {
+            return new Promise((res, rej) => {
+                const req = indexedDB.open(DB_NAME, 1);
+                req.onupgradeneeded = () => req.result.createObjectStore(STORE);
+                req.onsuccess = () => res(req.result);
+                req.onerror = () => rej(req.error);
+            });
+        }
+        async function saveState() {
+            try {
+                const db = await openDB();
+                const tx = db.transaction(STORE, 'readwrite');
+                tx.objectStore(STORE).put({ nodes, nextId, defaults: getDefaults() }, KEY);
+                tx.oncomplete = () => db.close();
+            } catch(e) { console.warn('IndexedDB 保存失败', e); }
+        }
+        async function loadState() {
+            try {
+                const db = await openDB();
+                return new Promise(res => {
+                    const tx = db.transaction(STORE, 'readonly');
+                    const req = tx.objectStore(STORE).get(KEY);
+                    req.onsuccess = () => { db.close(); res(req.result || null); };
+                    req.onerror = () => { db.close(); res(null); };
+                });
+            } catch(e) { return null; }
+        }
+        const debouncedSave = (() => { let t; return () => { clearTimeout(t); t = setTimeout(saveState, 400); }; })();
+
+        function getDefaults() {
+            return {
+                model: document.getElementById('bw-default-model').value,
+                ratio: document.getElementById('bw-default-ratio').value,
+                size: document.getElementById('bw-default-size').value
+            };
+        }
+
+        function newNode(seed = {}) {
+            const d = getDefaults();
+            return {
+                id: nextId++,
+                slots: seed.slots ? [...seed.slots] : [null, null, null, null],
+                prompt: seed.prompt || '',
+                ratio: seed.ratio || d.ratio,
+                size: seed.size || d.size,
+                model: seed.model || d.model,
+                status: 'pending',
+                result: null,
+                error: null
+            };
+        }
+
+        function statusBadge(status) {
+            const map = {
+                pending: ['⏸ 待执行', '#86868B', '#f5f5f7'],
+                running: ['🔄 运行中', '#fff', '#5ac8fa'],
+                done: ['✓ 完成', '#fff', '#34c759'],
+                error: ['❌ 失败', '#fff', '#ff4d4f']
+            };
+            const [t, c, bg] = map[status] || map.pending;
+            return `<span class="bw-node-status" style="color:${c}; background:${bg};">${t}</span>`;
+        }
+
+        function renderNode(node) {
+            const slotsHTML = [0, 1, 2, 3].map(i => {
+                const s = node.slots[i];
+                return s
+                    ? `<div class="bw-slot filled" data-act="slot" data-id="${node.id}" data-slot="${i}"><span class="bw-slot-x" data-act="clearslot" data-id="${node.id}" data-slot="${i}">×</span><img src="${s}"></div>`
+                    : `<div class="bw-slot" data-act="slot" data-id="${node.id}" data-slot="${i}">图${i+1}</div>`;
+            }).join('');
+
+            const resultHTML = node.result
+                ? `<div class="bw-node-result"><img src="${node.result}"></div>`
+                : (node.error ? `<div class="bw-node-error">${node.error}</div>` : '');
+
+            return `<div class="bw-node" data-status="${node.status}" data-id="${node.id}">
+                <div class="bw-node-header">
+                    <span class="bw-node-id">节点 #${node.id}</span>
+                    ${statusBadge(node.status)}
+                    <div class="bw-node-actions">
+                        <button data-act="run-one" data-id="${node.id}" title="单独执行">▶</button>
+                        <button data-act="clone" data-id="${node.id}" title="克隆">⎘</button>
+                        <button data-act="delete" data-id="${node.id}" title="删除">✕</button>
+                    </div>
+                </div>
+                <div class="bw-slots">${slotsHTML}</div>
+                <textarea data-act="prompt" data-id="${node.id}" placeholder="该节点的提示词...">${node.prompt}</textarea>
+                <div class="bw-node-config">
+                    <select data-act="model" data-id="${node.id}">
+                        <option value="flash"${node.model==='flash'?' selected':''}>Flash</option>
+                        <option value="pro"${node.model==='pro'?' selected':''}>Pro</option>
+                        <option value="openai"${node.model==='openai'?' selected':''}>OpenAI</option>
+                    </select>
+                    <select data-act="ratio" data-id="${node.id}">
+                        <option value="1:1"${node.ratio==='1:1'?' selected':''}>1:1</option>
+                        <option value="16:9"${node.ratio==='16:9'?' selected':''}>16:9</option>
+                        <option value="9:16"${node.ratio==='9:16'?' selected':''}>9:16</option>
+                        <option value="4:3"${node.ratio==='4:3'?' selected':''}>4:3</option>
+                        <option value="3:4"${node.ratio==='3:4'?' selected':''}>3:4</option>
+                        <option value="original"${node.ratio==='original'?' selected':''}>📐 原图</option>
+                    </select>
+                    <select data-act="size" data-id="${node.id}">
+                        <option value="1K"${node.size==='1K'?' selected':''}>1K</option>
+                        <option value="2K"${node.size==='2K'?' selected':''}>2K</option>
+                        <option value="4K"${node.size==='4K'?' selected':''}>4K</option>
+                    </select>
+                </div>
+                ${resultHTML}
+            </div>`;
+        }
+
+        function render() {
+            if (nodes.length === 0) {
+                grid.innerHTML = `<div class="bw-empty">
+                    <p style="font-size:15px; margin-bottom:8px;">还没有节点</p>
+                    <p style="font-size:12px;">点下方「+ 新建节点」开始，或「📤 导入」加载已有配置</p>
+                </div>
+                <div class="bw-add-card" id="bw-add-first"><div class="plus">+</div><div style="margin-top:8px; font-size:12px;">新建节点</div></div>`;
+                document.getElementById('bw-add-first').onclick = addNode;
+            } else {
+                grid.innerHTML = nodes.map(renderNode).join('') +
+                    `<div class="bw-add-card" id="bw-add-more"><div class="plus">+</div><div style="margin-top:8px; font-size:12px;">新建节点</div></div>`;
+                document.getElementById('bw-add-more').onclick = addNode;
+            }
+            debouncedSave();
+        }
+
+        function addNode(seed) {
+            nodes.push(newNode(seed && seed.slots ? seed : {}));
+            render();
+        }
+
+        // ---- 事件委托 ----
+        grid.addEventListener('click', (e) => {
+            const el = e.target.closest('[data-act]');
+            if (!el) return;
+            const act = el.dataset.act;
+            const id = parseInt(el.dataset.id);
+            const node = nodes.find(n => n.id === id);
+            if (!node && act !== 'clearslot' && act !== 'slot') return;
+
+            if (act === 'delete') {
+                if (confirm(`删除节点 #${id}？`)) { nodes = nodes.filter(n => n.id !== id); render(); }
+            } else if (act === 'clone') {
+                const copy = newNode({ slots: node.slots, prompt: node.prompt, ratio: node.ratio, size: node.size, model: node.model });
+                const idx = nodes.findIndex(n => n.id === id);
+                nodes.splice(idx + 1, 0, copy); render();
+            } else if (act === 'run-one') {
+                if (queueRunning) { alert('队列正在运行，请先停止'); return; }
+                runQueue([node]);
+            } else if (act === 'slot') {
+                const slotIdx = parseInt(el.dataset.slot);
+                if (e.target.classList.contains('bw-slot-x')) return;
+                pickImage((dataURL) => {
+                    node.slots[slotIdx] = dataURL;
+                    render();
+                });
+            } else if (act === 'clearslot') {
+                e.stopPropagation();
+                node.slots[parseInt(el.dataset.slot)] = null;
+                render();
+            }
+        });
+
+        grid.addEventListener('input', (e) => {
+            const el = e.target.closest('[data-act]');
+            if (!el) return;
+            const id = parseInt(el.dataset.id);
+            const node = nodes.find(n => n.id === id);
+            if (!node) return;
+            const act = el.dataset.act;
+            if (act === 'prompt') node.prompt = el.value;
+            else if (act === 'model') node.model = el.value;
+            else if (act === 'ratio') node.ratio = el.value;
+            else if (act === 'size') node.size = el.value;
+            debouncedSave();
+        });
+
+        function pickImage(cb) {
+            const inp = document.createElement('input');
+            inp.type = 'file'; inp.accept = 'image/*';
+            inp.onchange = (e) => {
+                const f = e.target.files[0]; if (!f) return;
+                const r = new FileReader();
+                r.onload = ev => cb(ev.target.result);
+                r.readAsDataURL(f);
+            };
+            inp.click();
+        }
+
+        // ---- 串行执行：临时填充主控台 DOM + 通过 updateSlotUI/clearSlot 操作 referenceData，调原 callAPI ----
+        async function runOneNode(node) {
+            // 备份主控台当前值（DOM 层 + 通过 DOM 反推插槽当前状态）
+            const backup = {
+                key: document.getElementById('apiKey').value,
+                model: document.getElementById('apiType').value,
+                ratio: document.getElementById('selectedRatio').value,
+                size: document.getElementById('selectedSize').value,
+                prompt: document.getElementById('prompt').value,
+                // 从插槽的 <img> 标签读取当前 base64（updateSlotUI 把数据塞进了 img.src）
+                slotData: [1,2,3,4].map(i => {
+                    const img = document.getElementById(`s${i}-img`);
+                    return img && img.style.display !== 'none' ? img.src : null;
+                })
+            };
+            try {
+                if (!backup.key) throw new Error('请先在主控台输入 API 密钥');
+                if (typeof window.callAPI !== 'function') throw new Error('主画布未初始化，请先登录');
+
+                // 注入节点参数
+                document.getElementById('apiType').value = node.model;
+                // 处理「原图比例」：原 callAPI 读的是闭包 slotRatio，IIFE 拿不到，
+                // 这里就地按图1实际尺寸映射成具体比例（沿用原代码同一套阈值）
+                let injectRatio = node.ratio;
+                if (injectRatio === 'original') {
+                    const img1 = node.slots[0];
+                    if (img1) {
+                        const r = await new Promise((res) => {
+                            const im = new Image();
+                            im.onload = () => res(im.width / im.height);
+                            im.onerror = () => res(null);
+                            im.src = img1;
+                        });
+                        if (r) {
+                            if (r >= 1.7) injectRatio = '16:9';
+                            else if (r >= 1.2) injectRatio = '4:3';
+                            else if (r <= 0.6) injectRatio = '9:16';
+                            else if (r <= 0.85) injectRatio = '3:4';
+                            else injectRatio = '1:1';
+                        } else { injectRatio = '1:1'; }
+                    } else { injectRatio = '1:1'; }
+                }
+                document.getElementById('selectedRatio').value = injectRatio;
+                document.getElementById('selectedSize').value = node.size;
+                document.getElementById('prompt').value = node.prompt;
+                // 通过原生 updateSlotUI / clearSlot 操作 referenceData（绕开闭包问题）
+                for (let i = 1; i <= 4; i++) {
+                    const slotData = node.slots[i-1];
+                    if (slotData) {
+                        if (typeof window.updateSlotUI === 'function') window.updateSlotUI(i, slotData);
+                    } else {
+                        if (typeof window.clearSlot === 'function') window.clearSlot(i);
+                    }
+                }
+
+                const b64 = await window.callAPI(backup.key);
+                if (!b64) throw new Error('API 返回空结果');
+                const dataURL = 'data:image/png;base64,' + b64;
+                node.result = dataURL;
+                node.status = 'done';
+                node.error = null;
+                // 自动送回主画布
+                if (typeof window.addImageToCanvas === 'function') window.addImageToCanvas(dataURL);
+            } catch(err) {
+                node.status = 'error';
+                node.error = err.message || String(err);
+            } finally {
+                // 恢复���控台 DOM 和插槽
+                document.getElementById('apiType').value = backup.model;
+                document.getElementById('selectedRatio').value = backup.ratio;
+                document.getElementById('selectedSize').value = backup.size;
+                document.getElementById('prompt').value = backup.prompt;
+                for (let i = 1; i <= 4; i++) {
+                    const orig = backup.slotData[i-1];
+                    if (orig) {
+                        if (typeof window.updateSlotUI === 'function') window.updateSlotUI(i, orig);
+                    } else {
+                        if (typeof window.clearSlot === 'function') window.clearSlot(i);
+                    }
+                }
+            }
+        }
+
+        async function runQueue(targetNodes) {
+            if (queueRunning) return;
+            queueRunning = true; stopRequested = false;
+            runAllBtn.style.display = 'none'; stopBtn.style.display = 'inline-block';
+            progressRow.style.display = 'flex';
+
+            const total = targetNodes.length;
+            for (let i = 0; i < total; i++) {
+                if (stopRequested) { progressText.innerText = '⏹ 已停止'; break; }
+                const node = targetNodes[i];
+                node.status = 'running';
+                node.result = null; node.error = null;
+                render();
+                progressText.innerText = `正在执行 节点 #${node.id}`;
+                progressCount.innerText = `${i+1}/${total}`;
+                progressFill.style.width = `${((i)/total)*100}%`;
+                await runOneNode(node);
+                render();
+                progressFill.style.width = `${((i+1)/total)*100}%`;
+            }
+
+            if (!stopRequested) {
+                progressText.innerText = '✨ 全部任务完成';
+                progressFill.style.width = '100%';
+            }
+            queueRunning = false;
+            runAllBtn.style.display = 'inline-block'; stopBtn.style.display = 'none';
+            setTimeout(() => { if (!queueRunning) progressRow.style.display = 'none'; }, 4000);
+        }
+
+        runAllBtn.onclick = () => {
+            const pending = nodes.filter(n => n.status !== 'done');
+            if (pending.length === 0) {
+                if (!confirm('所有节点已完成。是否重新执行全部？')) return;
+                nodes.forEach(n => { n.status = 'pending'; n.result = null; n.error = null; });
+                render();
+                runQueue([...nodes]);
+            } else {
+                runQueue(pending);
+            }
+        };
+        stopBtn.onclick = () => { stopRequested = true; stopBtn.innerText = '⏹ 当前节点完成后停止'; };
+
+        clearAllBtn.onclick = () => {
+            if (queueRunning) return alert('请先停止队列');
+            if (nodes.length === 0 || confirm(`确定清空全部 ${nodes.length} 个节点？`)) {
+                nodes = []; nextId = 1; render();
+            }
+        };
+
+        exportBtn.onclick = () => {
+            const blob = new Blob([JSON.stringify({ version: 1, nodes, defaults: getDefaults() }, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `nezha_workshop_${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        };
+        importBtn.onclick = () => fileInput.click();
+        fileInput.onchange = (e) => {
+            const f = e.target.files[0]; if (!f) return;
+            const r = new FileReader();
+            r.onload = ev => {
+                try {
+                    const data = JSON.parse(ev.target.result);
+                    if (!Array.isArray(data.nodes)) throw new Error('文件格式不正确');
+                    if (nodes.length > 0 && !confirm(`当前已有 ${nodes.length} 个节点。导入会追加（不覆盖），继续？`)) return;
+                    data.nodes.forEach(n => { n.id = nextId++; n.status = 'pending'; n.result = null; n.error = null; nodes.push(n); });
+                    render();
+                } catch(err) { alert('导入失败：' + err.message); }
+                fileInput.value = '';
+            };
+            r.readAsText(f);
+        };
+
+        // ---- 进入工坊时恢复状态 ----
+        window.bwOnOpen = async () => {
+            if (nodes.length > 0) return; // 已经有内容不覆盖
+            const saved = await loadState();
+            if (saved && saved.nodes && saved.nodes.length > 0) {
+                nodes = saved.nodes.map(n => ({ ...n, status: n.status === 'running' ? 'pending' : n.status }));
+                nextId = saved.nextId || (nodes.reduce((m, n) => Math.max(m, n.id), 0) + 1);
+                if (saved.defaults) {
+                    document.getElementById('bw-default-model').value = saved.defaults.model;
+                    document.getElementById('bw-default-ratio').value = saved.defaults.ratio;
+                    document.getElementById('bw-default-size').value = saved.defaults.size;
+                }
+                render();
+            } else {
+                // 首次进入：从主画布种子一个节点（通过 DOM 读取当前插槽和提示词）
+                const seedSlots = [1,2,3,4].map(i => {
+                    const img = document.getElementById(`s${i}-img`);
+                    return img && img.style.display !== 'none' ? img.src : null;
+                });
+                const seedPrompt = document.getElementById('prompt').value || '';
+                const hasSeed = seedSlots.some(s => s) || seedPrompt;
+                if (hasSeed) addNode({ slots: seedSlots, prompt: seedPrompt });
+                else render();
+            }
+        };
+
+        // 默认值变化时记住
+        ['bw-default-model','bw-default-ratio','bw-default-size'].forEach(id => {
+            document.getElementById(id).addEventListener('change', debouncedSave);
+        });
+
+        // 初始空渲染
+        render();
+
+        // 暴露原画布关键变量到 window（如果它们还没有）
+        // referenceData / callAPI / addImageToCanvas 在原代码里是脚本作用域，需要桥接
+    })();
+
+    // ===== 桥接：把原画布的脚本作用域变量/函数挂到 window，供节点工坊复用 =====
+    // 不修改原函数本身，只在它们之外建立引用
+    (function bridge() {
+        const tryBridge = () => {
+            // 原代码顶层声明的变量在浏览器里就是全局（var/let/function/const 在 script 顶层），可直接读取
+            try { if (typeof callAPI === 'function') window.callAPI = callAPI; } catch(e) {}
+            try { if (typeof addImageToCanvas === 'function') window.addImageToCanvas = addImageToCanvas; } catch(e) {}
+            try { if (typeof referenceData !== 'undefined') window.referenceData = referenceData; } catch(e) {}
+            try { if (typeof pgBase64Image !== 'undefined') window.pgBase64Image = pgBase64Image; } catch(e) {}
+        };
+        tryBridge();
+        setTimeout(tryBridge, 500);
+        setTimeout(tryBridge, 2000);
+        // 登录按钮点击后也尝试桥接（initCanvas 之后变量才真正被使用）
+        document.addEventListener('click', (e) => {
+            if (e.target && e.target.tagName === 'BUTTON') setTimeout(tryBridge, 100);
+        });
     })();
 </script>
 
